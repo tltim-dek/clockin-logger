@@ -90,7 +90,15 @@ async def get_user_info(message, text):
             if role.name != "@everyone" and not role.managed
         ]
 
-        if roles:
+        visible_roles = [
+            role for role in roles
+            if role.hoist
+        ]
+
+        if visible_roles:
+            highest_visible_role = max(visible_roles, key=lambda role: role.position)
+            grade = highest_visible_role.name
+        elif roles:
             highest_role = max(roles, key=lambda role: role.position)
             grade = highest_role.name
         else:
