@@ -64,13 +64,8 @@ if message.mentions:
     user = member.display_name
     user_id = str(member.id)
 
-    duration_match = re.search(r"ajoutant (.+?) au temps total", text)
-    duration = duration_match.group(1).strip() if duration_match else ""
-
-    user_id = ""
-    if message.mentions:
-        user_id = str(message.mentions[0].id)
-        user = message.mentions[0].display_name
+duration_match = re.search(r"ajoutant (.+?) au temps total", text)
+duration = duration_match.group(1).strip() if duration_match else ""
 
     send_to_sheets(user, user_id, action, duration, text)
     print(f"Envoyé : {user} - {action} - {duration}")
