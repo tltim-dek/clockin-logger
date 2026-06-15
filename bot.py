@@ -55,7 +55,6 @@ async def on_message(message):
         action = "Début"
     else:
         return
-
   user = "Inconnu"
 user_id = ""
 
