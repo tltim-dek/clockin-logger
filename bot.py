@@ -77,7 +77,8 @@ async def get_user_info(message, text):
         if member is None:
             try:
                 member = await message.guild.fetch_member(int(user_id))
-            except Exception:
+            except Exception as error:
+                print("Impossible de récupérer le membre :", error)
                 member = None
 
     if member:
@@ -92,9 +93,13 @@ async def get_user_info(message, text):
         if roles:
             highest_role = max(roles, key=lambda role: role.position)
             grade = highest_role.name
+        else:
+            grade = "Aucun rôle"
     else:
         user = user_id
+        grade = "Membre introuvable"
 
+    print(f"Infos membre : {user} | {user_id} | {avatar_url} | {grade}")
     return user, user_id, avatar_url, grade
 
 
@@ -126,6 +131,7 @@ def get_duration(text):
 @client.event
 async def on_ready():
     print(f"Bot connecté : {client.user}")
+    print(f"Salon surveillé : {LOG_CHANNEL_ID}")
 
 
 @client.event
