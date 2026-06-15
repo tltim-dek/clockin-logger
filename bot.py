@@ -84,9 +84,14 @@ async def get_user_info(message, text):
         user = member.display_name
         avatar_url = str(member.display_avatar.url)
 
-        roles = [role for role in member.roles if role.name != "@everyone"]
-        if roles:
-            grade = roles[-1].name
+        roles = [
+    role for role in member.roles
+    if role.name != "@everyone" and not role.managed
+]
+
+if roles:
+    highest_role = max(roles, key=lambda role: role.position)
+    grade = highest_role.name
     else:
         user = user_id
 
