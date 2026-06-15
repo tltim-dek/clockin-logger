@@ -18,7 +18,7 @@ intents.members = True
 client = discord.Client(intents=intents)
 
 
-def send_to_sheets(user, user_id, action, duration, message_text):
+def send_to_sheets(user, user_id, action, duration, message_text, avatar_url, grade):
     payload = {
         "secret": SECRET,
         "user": user,
@@ -26,7 +26,9 @@ def send_to_sheets(user, user_id, action, duration, message_text):
         "action": action,
         "service": "Service",
         "duration": duration,
-        "message": message_text
+        "message": message_text,
+        "avatar": avatar_url,
+        "grade": grade
     }
 
     response = requests.post(GOOGLE_SCRIPT_URL, json=payload, timeout=10)
@@ -58,11 +60,13 @@ def get_message_text(message):
 async def get_user_info(message, text):
     user = "Inconnu"
     user_id = ""
+    avatar_url = ""
+    grade = ""
 
     match = re.search(r"<@!?(\d+)>", text)
 
     if not match:
-        return user, user_id
+        return user, user_id, avatar_url, grade
 
     user_id = match.group(1)
     member = None
@@ -78,10 +82,15 @@ async def get_user_info(message, text):
 
     if member:
         user = member.display_name
+        avatar_url = str(member.display_avatar.url)
+
+        roles = [role for role in member.roles if role.name != "@everyone"]
+        if roles:
+            grade = roles[-1].name
     else:
         user = user_id
 
-    return user, user_id
+    return user, user_id, avatar_url, grade
 
 
 def get_action(text):
@@ -128,13 +137,21 @@ async def on_message(message):
     if action is None:
         return
 
-    user, user_id = await get_user_info(message, text)
+    user, user_id, avatar_url, grade = await get_user_info(message, text)
     duration = get_duration(text)
     clean_message = text.replace("\n", " ")
 
-    send_to_sheets(user, user_id, action, duration, clean_message)
+    send_to_sheets(
+        user,
+        user_id,
+        action,
+        duration,
+        clean_message,
+        avatar_url,
+        grade
+    )
 
-    print(f"Envoyé : {user} | {user_id} | {action} | {duration}")
+    print(f"Envoyé : {user} | {user_id} | {action} | {duration} | {grade}")
 
 
 client.run(DISCORD_TOKEN)
