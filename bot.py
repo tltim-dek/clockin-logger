@@ -13,8 +13,10 @@ LOG_CHANNEL_ID = int(os.getenv("LOG_CHANNEL_ID"))
 
 intents = discord.Intents.default()
 intents.message_content = True
+intents.members = True
 
 client = discord.Client(intents=intents)
+
 
 def send_to_sheets(user, user_id, action, duration, message):
     payload = {
@@ -27,20 +29,11 @@ def send_to_sheets(user, user_id, action, duration, message):
         "message": message
     }
 
-    requests.post(GOOGLE_SCRIPT_URL, json=payload, timeout=10)
+    response = requests.post(GOOGLE_SCRIPT_URL, json=payload, timeout=10)
+    print("Réponse Google Sheets :", response.text)
 
-@client.event
-async def on_ready():
-    print(f"Connecté en tant que {client.user}")
 
-@client.event
-async def on_message(message):
-    if message.channel.id != LOG_CHANNEL_ID:
-        return
-
-    if message.author.bot is False:
-        return
-
+def get_embed_text(message):
     text = message.content or ""
 
     for embed in message.embeds:
@@ -49,24 +42,74 @@ async def on_message(message):
         if embed.description:
             text += "\n" + embed.description
 
-    if "pointé de sortie" in text.lower():
+    return text
+
+
+async def get_member_info(message, text):
+    user_id = ""
+    user_name = "Inconnu"
+
+    match = re.search(r"<@!?(\d+)>", text)
+
+    if match:
+        user_id = match.group(1)
+
+        member = message.guild.get_member(int(user_id))
+
+        if member is None:
+            try:
+                member = await message.guild.fetch_member(int(user_id))
+            except Exception:
+                member = None
+
+        if member:
+            user_name = member.display_name
+        else:
+            user_name = user_id
+
+    return user_name, user_id
+
+
+@client.event
+async def on_ready():
+    print(f"Bot connecté : {client.user}")
+
+
+@client.event
+async def on_message(message):
+    if message.channel.id != LOG_CHANNEL_ID:
+        return
+
+    if not message.author.bot:
+        return
+
+    text = get_embed_text(message)
+    text_lower = text.lower()
+
+    if "pointé de sortie" in text_lower:
         action = "Fin"
-    elif "pointé" in text.lower():
+    elif "pointé" in text_lower:
         action = "Début"
     else:
         return
-  user = "Inconnu"
-user_id = ""
 
-if message.mentions:
-    member = message.mentions[0]
-    user = member.display_name
-    user_id = str(member.id)
+    user, user_id = await get_member_info(message, text)
 
-duration_match = re.search(r"ajoutant (.+?) au temps total", text)
-duration = duration_match.group(1).strip() if duration_match else ""
+    duration = ""
+    duration_match = re.search(
+        r"ajoutant (.+?) au temps total",
+        text,
+        re.IGNORECASE
+    )
 
-    send_to_sheets(user, user_id, action, duration, text)
-    print(f"Envoyé : {user} - {action} - {duration}")
+    if duration_match:
+        duration = duration_match.group(1).strip()
+
+    clean_message = text.replace("\n", " ")
+
+    send_to_sheets(user, user_id, action, duration, clean_message)
+
+    print(f"Envoyé : {user} | {user_id} | {action} | {duration}")
+
 
 client.run(DISCORD_TOKEN)
