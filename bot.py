@@ -56,8 +56,13 @@ async def on_message(message):
     else:
         return
 
-    user_match = re.search(r"@(.+?) est pointé", text)
-    user = user_match.group(1).strip() if user_match else "Inconnu"
+  user = "Inconnu"
+user_id = ""
+
+if message.mentions:
+    member = message.mentions[0]
+    user = member.display_name
+    user_id = str(member.id)
 
     duration_match = re.search(r"ajoutant (.+?) au temps total", text)
     duration = duration_match.group(1).strip() if duration_match else ""
